@@ -1,0 +1,10 @@
+﻿
+> hosting-platform@0.0.0 lint
+> eslint .
+
+
+D:\Project\Project\src\components\ui\Icon.jsx
+  100:5  error  Duplicate key 'mouse-pointer'  no-dupe-keys
+
+Γ£û 1 problem (1 error, 0 warnings)
+
