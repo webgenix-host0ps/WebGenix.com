@@ -1,5 +1,10 @@
-import SignupForm from '../components/auth/SignupForm';
+import { useEffect } from "react";
+import keycloak from "../auth/keycloak";
 
 export default function SignupPage() {
-    return <SignupForm />;
+  useEffect(() => {
+    keycloak.register();
+  }, []);
+
+  return <div>Redirecting to signup...</div>;
 }
