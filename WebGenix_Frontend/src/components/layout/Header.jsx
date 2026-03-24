@@ -55,8 +55,7 @@ export default function Header() {
                             <>
                                 <button
                                     className="text-sm text-text-secondary hover:text-text-primary transition-colors"
-                                    onClick={() => keycloak.login()}
-                                >
+                                    onClick={() => keycloak.login({  redirectUri: window.location.origin + "/dashboard"})}>
                                     Log in
                                 </button>
 
