@@ -6,16 +6,23 @@ import App from './App.jsx';
 import keycloak from './auth/keycloak';
 
 keycloak.init({
-  onLoad: "check-sso",
+  onLoad: "check-sso",        // 🔥 allows home page without login
   pkceMethod: "S256",
   checkLoginIframe: false,
-}).then((authenticated) => {
-
-  // 🔥 REDIRECT AFTER LOGIN
-  if (authenticated && window.location.pathname === "/") {
-    window.location.href = "/dashboard";
+}).then(async (authenticated) => {
+  if (authenticated) {
+    // Only try to refresh token if authenticated
+    try {
+      await keycloak.updateToken(0);
+    } catch (error) {
+      console.error("Failed to refresh token", error);
+    }
+    console.log("KEYCLOAK TOKEN:", keycloak.tokenParsed);
+  } else {
+    console.log("User not authenticated – app will still render");
   }
 
+  // ✅ Always render the app
   createRoot(document.getElementById('root')).render(
     <StrictMode>
       <BrowserRouter>
@@ -23,4 +30,6 @@ keycloak.init({
       </BrowserRouter>
     </StrictMode>
   );
+}).catch((err) => {
+  console.error("Keycloak init failed:", err);
 });
