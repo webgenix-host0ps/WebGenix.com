@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  outline:
+    image: outlinewiki/outline:latest
+    container_name: outline
+    environment:
+      - DATABASE_URL=postgres://outline:outlinepass@db:5432/outline
+      - REDIS_URL=redis://redis:6379
+      - URL=http://localhost:3010
+    ports:
+      - "3010:3000"
+    depends_on:
+      - db
+      - redis
+
+  db:
+    image: postgres:15-alpine
+    container_name: outline-postgres
+    environment:
+      POSTGRES_USER: outline
+      POSTGRES_PASSWORD: outlinepass
+      POSTGRES_DB: outline
+    ports:
+      - "5440:5432"
+    volumes:
+      - outline_db_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: outline-redis
+    ports:
+      - "6380:6379"
+
+volumes:
+  outline_db_data:
