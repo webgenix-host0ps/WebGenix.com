@@ -1,22 +1,16 @@
 import { useParams, useNavigate } from "react-router-dom";
-import keycloak from "../../../auth/keycloak";
+import { useAdmin } from "../hooks/AdminContext";
 
 export default function UserDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const user = keycloak.tokenParsed;
+  const { users } = useAdmin();
 
-  // Since no backend → match with current user
-  const currentUser = {
-    id: user?.sub,
-    name: user?.name || user?.preferred_username,
-    email: user?.email,
-    role: "admin",
-    status: "active"
-  };
+  // ✅ Get real user from global state
+  const currentUser = users.find(u => u.id === id);
 
-  if (id !== currentUser.id) {
+  if (!currentUser) {
     return (
       <div className="text-red-400">
         User not found
@@ -38,6 +32,7 @@ export default function UserDetails() {
       </h1>
 
       <div className="bg-[#141414] border border-[#262626] rounded-xl p-6 space-y-4">
+
         <div>
           <p className="text-xs text-[#525252]">Name</p>
           <p className="text-white">{currentUser.name}</p>
@@ -55,8 +50,15 @@ export default function UserDetails() {
 
         <div>
           <p className="text-xs text-[#525252]">Status</p>
-          <p className="text-white">{currentUser.status}</p>
+          <p className={`${
+            currentUser.status === "active"
+              ? "text-green-400"
+              : "text-red-400"
+          }`}>
+            {currentUser.status}
+          </p>
         </div>
+
       </div>
     </div>
   );

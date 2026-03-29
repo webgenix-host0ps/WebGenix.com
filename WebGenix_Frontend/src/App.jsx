@@ -13,11 +13,13 @@ import SupportDashboard  from './pages/Support_Dashboard_Pages/SupportDashboard'
 import ClientDashboard   from './pages/Client_Dashboard_Pages/ClientDashboard';
 
 
+
 //This is the admin Dashboard section
 import AdminLayout from "./pages/Admin_Dashboard_Pages/layout/AdminLayout";
 import Overview from "./pages/Admin_Dashboard_Pages/pages/Overview";
 import Users from "./pages/Admin_Dashboard_Pages/pages/Users";
 import UserDetails from "./pages/Admin_Dashboard_Pages/pages/UserDetails";
+import Services from "./pages/Admin_Dashboard_Pages/pages/Services";
 
 import StaticHostingPage    from './pages/StaticHostingPage';
 import DynamicHostingPage   from './pages/DynamicHostingPage';
@@ -76,6 +78,7 @@ function App() {
           <Route path="overview" element={<Overview />} />
           <Route path="users" element={<Users />} />
           <Route path="users/:id" element={<UserDetails />} />
+          <Route path="services" element={<Services />} />
         </Route>
 
         <Route path="/support/dashboard" element={
