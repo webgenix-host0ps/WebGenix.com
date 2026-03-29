@@ -12,6 +12,13 @@ import AdminDashboard    from './pages/Admin_Dashboard_Pages/AdminDashboard';
 import SupportDashboard  from './pages/Support_Dashboard_Pages/SupportDashboard';
 import ClientDashboard   from './pages/Client_Dashboard_Pages/ClientDashboard';
 
+
+//This is the admin Dashboard section
+import AdminLayout from "./pages/Admin_Dashboard_Pages/layout/AdminLayout";
+import Overview from "./pages/Admin_Dashboard_Pages/pages/Overview";
+import Users from "./pages/Admin_Dashboard_Pages/pages/Users";
+import UserDetails from "./pages/Admin_Dashboard_Pages/pages/UserDetails";
+
 import StaticHostingPage    from './pages/StaticHostingPage';
 import DynamicHostingPage   from './pages/DynamicHostingPage';
 import WebsiteBuilderPage   from './pages/WebsiteBuilderPage';
@@ -61,11 +68,15 @@ function App() {
         } />
 
         {/* Role-locked dashboards — wrong role gets bounced to their own home */}
-        <Route path="/admin/dashboard" element={
+        <Route path="/admin/dashboard/*" element={
           <ProtectedRoute allowedRoles={['admin']}>
-            <AdminDashboard />
+            <AdminLayout />
           </ProtectedRoute>
-        } />
+        }>
+          <Route path="overview" element={<Overview />} />
+          <Route path="users" element={<Users />} />
+          <Route path="users/:id" element={<UserDetails />} />
+        </Route>
 
         <Route path="/support/dashboard" element={
           <ProtectedRoute allowedRoles={['support', 'admin']}>
