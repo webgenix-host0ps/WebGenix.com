@@ -3,25 +3,37 @@ import keycloak from "../../../auth/keycloak";
 
 export default function Tickets() {
   const [tickets, setTickets] = useState([]);
-
   const [title, setTitle] = useState("");
-  const [priority, setPriority] = useState("low");
+  const [loading, setLoading] = useState(false);
 
-  const token = keycloak.token;
-
-  // 📥 Fetch tickets from backend
+  // 📥 Fetch tickets
   const fetchTickets = async () => {
     try {
+      setLoading(true);
+
+      await keycloak.updateToken(30);
+
       const res = await fetch("http://localhost:5000/api/tickets", {
         headers: {
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${keycloak.token}`
         }
       });
 
       const data = await res.json();
-      setTickets(data);
+
+      // ✅ Always ensure array
+      if (Array.isArray(data)) {
+        setTickets(data);
+      } else {
+        console.error("Invalid data:", data);
+        setTickets([]);
+      }
+
     } catch (err) {
-      console.error("Error fetching tickets:", err);
+      console.error("Fetch error:", err);
+      setTickets([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -30,29 +42,29 @@ export default function Tickets() {
   }, []);
 
   // ➕ Create ticket
-  const handleAddTicket = async () => {
+  const createTicket = async () => {
     if (!title) return;
 
     try {
+      await keycloak.updateToken(30);
+
       await fetch("http://localhost:5000/api/tickets", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${keycloak.token}`
         },
         body: JSON.stringify({
           title,
-          description: "Created from dashboard",
-          priority
+          description: "Created from dashboard"
         })
       });
 
       setTitle("");
-      setPriority("low");
+      fetchTickets();
 
-      fetchTickets(); // refresh list
     } catch (err) {
-      console.error("Error creating ticket:", err);
+      console.error("Create ticket error:", err);
     }
   };
 
@@ -60,65 +72,63 @@ export default function Tickets() {
     <div className="space-y-6">
 
       <h1 className="text-xl text-white font-semibold">
-        Support Tickets
+        Tickets (Zammad)
       </h1>
 
       {/* Create Ticket */}
-      <div className="bg-[#141414] border border-[#262626] rounded-xl p-4 space-y-3">
+      <div className="bg-[#141414] p-4 rounded-xl space-y-3">
         <input
           value={title}
-          onChange={e => setTitle(e.target.value)}
+          onChange={(e) => setTitle(e.target.value)}
           placeholder="Ticket title"
-          className="w-full bg-[#0f0f0f] border border-[#262626] rounded px-3 py-2 text-white"
+          className="w-full px-3 py-2 bg-black border border-[#262626] text-white rounded"
         />
 
-        <select
-          value={priority}
-          onChange={e => setPriority(e.target.value)}
-          className="w-full bg-[#0f0f0f] border border-[#262626] rounded px-3 py-2 text-white"
-        >
-          <option value="low">Low</option>
-          <option value="medium">Medium</option>
-          <option value="high">High</option>
-        </select>
-
         <button
-          onClick={handleAddTicket}
-          className="px-4 py-2 bg-blue-500 text-white rounded"
+          onClick={createTicket}
+          className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded"
         >
           Create Ticket
         </button>
       </div>
 
       {/* Ticket List */}
-      <div className="bg-[#141414] border border-[#262626] rounded-xl overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="bg-[#141414] rounded-xl overflow-hidden">
 
-          <thead>
-            <tr className="border-b border-[#1a1a1a] text-[#525252]">
-              <th className="px-4 py-3 text-left">Title</th>
-              <th className="px-4 py-3 text-left">Status</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {tickets.length === 0 ? (
-              <tr>
-                <td colSpan="2" className="text-center py-6 text-[#525252]">
-                  No tickets found
-                </td>
+        {loading ? (
+          <div className="text-center py-6 text-gray-400">
+            Loading tickets...
+          </div>
+        ) : tickets.length === 0 ? (
+          <div className="text-center py-6 text-gray-500">
+            No tickets found
+          </div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-[#525252] border-b border-[#1a1a1a]">
+                <th className="px-4 py-3 text-left">Title</th>
+                <th className="px-4 py-3 text-left">State</th>
+                <th className="px-4 py-3 text-left">Customer</th>
               </tr>
-            ) : (
-              tickets.map(t => (
+            </thead>
+
+            <tbody>
+              {(Array.isArray(tickets) ? tickets : []).map((t) => (
                 <tr key={t.id} className="border-b border-[#1a1a1a]">
                   <td className="px-4 py-3 text-white">{t.title}</td>
-                  <td className="px-4 py-3 text-green-400">{t.state}</td>
+                  <td className="px-4 py-3 text-green-400">
+                    {t.state || "N/A"}
+                  </td>
+                  <td className="px-4 py-3 text-gray-400">
+                    {t.customer?.email || "N/A"}
+                  </td>
                 </tr>
-              ))
-            )}
-          </tbody>
+              ))}
+            </tbody>
+          </table>
+        )}
 
-        </table>
       </div>
 
     </div>

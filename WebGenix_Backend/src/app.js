@@ -43,5 +43,6 @@ app.get("/test-zammad", async (req, res) => {
 
 
 app.listen(process.env.PORT, () => {
+  console.log("ZAMMAD_URL:", process.env.ZAMMAD_URL);
   console.log("Backend running on port " + process.env.PORT);
 });

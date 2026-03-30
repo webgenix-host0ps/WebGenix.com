@@ -17,6 +17,16 @@ export default function Sidebar({ collapsed, onToggle }) {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const handleNavigation = (item) => {
+    // 🔥 SPECIAL CASE → ZAMMAD
+    if (item.path === "tickets") {
+      window.location.href = "http://localhost:8090";
+      return;
+    }
+
+    navigate(`/admin/dashboard/${item.path}`);
+  };
+
   return (
     <aside className={`bg-[#0f0f0f] border-r border-[#1a1a1a] ${collapsed ? "w-16" : "w-56"} transition-all`}>
       
@@ -36,7 +46,7 @@ export default function Sidebar({ collapsed, onToggle }) {
           return (
             <button
               key={item.path}
-              onClick={() => navigate(`/admin/dashboard/${item.path}`)}
+              onClick={() => handleNavigation(item)}
               className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${
                 active
                   ? "bg-[#3b82f6]/10 text-[#3b82f6]"

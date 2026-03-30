@@ -45,7 +45,7 @@ import UserDetails from './pages/Admin_Dashboard_Pages/pages/UserDetails';
 import Services from './pages/Admin_Dashboard_Pages/pages/Services';
 import Profile from './pages/Admin_Dashboard_Pages/pages/Profile';
 import Settings from './pages/Admin_Dashboard_Pages/pages/Settings';
-import Tickets from './pages/Admin_Dashboard_Pages/pages/Tickets';
+// import Tickets from './pages/Admin_Dashboard_Pages/pages/Tickets';
 
 // ----------------------
 // Service Pages
@@ -111,7 +111,7 @@ function App() {
           <Route path="services" element={<Services />} />
           <Route path="profile" element={<Profile />} />
           <Route path="settings" element={<Settings />} />
-          <Route path="tickets" element={<Tickets />} />
+          {/* <Route path="tickets" element={<Tickets />} /> */}
         </Route>
 
         {/* =====================================================

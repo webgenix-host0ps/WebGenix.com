@@ -1,5 +1,6 @@
 import axios from "axios";
 
+// ✅ axios instance with baseURL
 const api = axios.create({
   baseURL: process.env.ZAMMAD_URL,
   headers: {
@@ -8,37 +9,39 @@ const api = axios.create({
   }
 });
 
-// 🔍 Check if user exists
+// 🔍 Find user
 export const findZammadUser = async (email) => {
-  const res = await api.get(`/users/search?query=${email}`);
+  const url = `${process.env.ZAMMAD_URL}/users/search?query=${email}`;
+  const res = await axios.get(url, {
+    headers: {
+      Authorization: `Token token=${process.env.ZAMMAD_TOKEN}`,
+      "Content-Type": "application/json"
+    }
+  });
   return res.data;
 };
 
-// Create User
-export const createZammadUser = async (user) => {
-  return api.post("/users", {
-    firstname: user.name,
-    email: user.email,
-    login: user.email
-  });
-};
+// ➕ Create user
+export const createZammadUser = async ({ name, email, role }) => {
+  const url = `${process.env.ZAMMAD_URL}/users`;
 
-// Create Ticket
-export const createTicket = async (data) => {
-  return api.post("/tickets", {
-    title: data.title,
-    group: "Users",
-    customer: data.email,
-    article: {
-      subject: data.title,
-      body: data.description,
-      type: "note",
-      internal: false
+  return axios.post(url, {
+    firstname: name || "User",
+    lastname: "User",
+    email: email,
+    login: email,
+    roles: mapRole(role)
+  }, {
+    headers: {
+      Authorization: `Token token=${process.env.ZAMMAD_TOKEN}`,
+      "Content-Type": "application/json"
     }
   });
 };
 
-// Get Tickets
-export const getTickets = async () => {
-  return api.get("/tickets");
+// 🎯 Role mapping
+const mapRole = (role) => {
+  if (role === "admin") return ["Admin"];
+  if (role === "support") return ["Agent"];
+  return ["Customer"];
 };
