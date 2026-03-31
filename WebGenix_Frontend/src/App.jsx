@@ -33,20 +33,24 @@ import RedirectDashboard from './pages/RedirectDashboard';
 // Role-Based Dashboards
 import AdminDashboard from './pages/Admin_Dashboard_Pages/AdminDashboard';
 import SupportDashboard from './pages/Support_Dashboard_Pages/SupportDashboard';
-import ClientDashboard from './pages/Client_Dashboard_Pages/ClientDashboard';
+// import ClientDashboard from './pages/Client_Dashboard_Pages/ClientDashboard';
+import ClientLayout from './pages/Client_Dashboard_Pages/layout/ClientLayout';
+// import Overview from './pages/Client_Dashboard_Pages/pages/Overview';
+
 
 // ----------------------
 // Admin Dashboard Pages
 // ----------------------
 import AdminLayout from './pages/Admin_Dashboard_Pages/layout/AdminLayout';
-import Overview from './pages/Admin_Dashboard_Pages/pages/Overview';
+// import Overview from './pages/Admin_Dashboard_Pages/pages/Overview';
 import Users from './pages/Admin_Dashboard_Pages/pages/Users';
 import UserDetails from './pages/Admin_Dashboard_Pages/pages/UserDetails';
 import Services from './pages/Admin_Dashboard_Pages/pages/Services';
 import Profile from './pages/Admin_Dashboard_Pages/pages/Profile';
 import Settings from './pages/Admin_Dashboard_Pages/pages/Settings';
 // import Tickets from './pages/Admin_Dashboard_Pages/pages/Tickets';
-
+import AdminOverview from './pages/Admin_Dashboard_Pages/pages/Overview';
+import ClientOverview from './pages/Client_Dashboard_Pages/pages/Overview';
 // ----------------------
 // Service Pages
 // ----------------------
@@ -105,7 +109,7 @@ function App() {
           }
         >
           {/* Nested Admin Routes */}
-          <Route path="overview" element={<Overview />} />
+          <Route path="overview" element={<AdminOverview />} />
           <Route path="users" element={<Users />} />
           <Route path="users/:id" element={<UserDetails />} />
           <Route path="services" element={<Services />} />
@@ -130,13 +134,15 @@ function App() {
             CLIENT DASHBOARD (ROLE: client)
         ===================================================== */}
         <Route
-          path="/client/dashboard"
+          path="/client/dashboard/*"
           element={
-            <ProtectedRoute allowedRoles={['client']}>
-              <ClientDashboard />
-            </ProtectedRoute>
-          }
-        />
+          <ProtectedRoute allowedRoles={['client']}>
+            <ClientLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route path="overview" element={<ClientOverview />} />
+      </Route>
 
         {/* =====================================================
             SERVICE PAGES
