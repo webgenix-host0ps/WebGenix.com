@@ -1,19 +1,37 @@
+import dotenv from "dotenv";
+dotenv.config();
+import mongoose from "mongoose";
+
 import express from "express";
 import cors from "cors";
 import ticketRoutes from "./routes/ticketRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
+import paymentRoutes from "./routes/payment.js";
+import webhookRoutes from "./routes/webhook.js";
+import clientRoutes from "./routes/client.js";
 
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB Connected ✅"))
+  .catch(err => console.error("Mongo Error ❌", err));
 
-import dotenv from "dotenv";
-dotenv.config();
 
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+// app.use(express.json());
+app.use((req, res, next) => {
+  if (req.originalUrl === "/api/webhook/razorpay") {
+    next(); // skip json parsing
+  } else {
+    express.json()(req, res, next);
+  }
+});
 
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/payment", paymentRoutes);
+app.use("/api/webhook", webhookRoutes);
+app.use("/api/client", clientRoutes);
 
 app.get("/test-zammad", async (req, res) => {
   try {

@@ -34,8 +34,14 @@ import RedirectDashboard from './pages/RedirectDashboard';
 import AdminDashboard from './pages/Admin_Dashboard_Pages/AdminDashboard';
 import SupportDashboard from './pages/Support_Dashboard_Pages/SupportDashboard';
 // import ClientDashboard from './pages/Client_Dashboard_Pages/ClientDashboard';
-import ClientLayout from './pages/Client_Dashboard_Pages/layout/ClientLayout';
 // import Overview from './pages/Client_Dashboard_Pages/pages/Overview';
+
+
+
+
+import ClientLayout from './pages/Client_Dashboard_Pages/layout/ClientLayout';
+import ClientService from './pages/Client_Dashboard_Pages/pages/Services';
+import ClientServicesPage from './pages/Client_Dashboard_Pages/pages/ClientServicesPage';
 
 
 // ----------------------
@@ -142,6 +148,8 @@ function App() {
         }
       >
         <Route path="overview" element={<ClientOverview />} />
+        <Route path="services" element={<ClientService />} /> 
+        <Route path="marketplace" element={<ClientServicesPage />} /> 
       </Route>
 
         {/* =====================================================

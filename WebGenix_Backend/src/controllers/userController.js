@@ -1,4 +1,4 @@
-import { createZammadUser, findZammadUser } from "../services/zammadService.js";
+ import { createZammadUser, findZammadUser } from "../services/zammadService.js";
 
 export const syncUser = async (req, res) => {
   try {

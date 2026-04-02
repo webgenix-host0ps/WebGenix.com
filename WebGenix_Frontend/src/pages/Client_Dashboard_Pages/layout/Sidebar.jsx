@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { id: "invoices", label: "Invoices", icon: "file-text" },
   { id: "tickets", label: "Support", icon: "message-circle" },
   { id: "profile", label: "Profile", icon: "users" },
+  { id: "marketplace", label: "Marketplace", icon: "shopping-cart" },
 ];
 
 export default function Sidebar({ collapsed, onToggle }) {
