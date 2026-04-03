@@ -5,6 +5,6 @@ import { createNewTicket, fetchTickets } from "../controllers/ticketController.j
 const router = express.Router();
 
 router.post("/", verifyToken, createNewTicket);
-router.get("/", verifyToken, fetchTickets);
+router.get("/", verifyToken, fetchTickets); 
 
 export default router;
