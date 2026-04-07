@@ -4,6 +4,9 @@ import Purchase from '../models/purchases.js';
 import Transaction from '../models/transactions.js';
 import ServicePlan from '../models/serviceplans.js';
 import { verifyToken } from '../middleware/auth.js';
+import { db } from '../db/index.js';
+// import { tickets } from '../db/schema.js';
+import { eq, sql } from 'drizzle-orm';
 
 const router = express.Router();
 
@@ -11,6 +14,7 @@ const router = express.Router();
 router.get('/services', verifyToken, async (req, res) => {
   try {
     const userId = req.user.sub;
+    console.log('🔎 Fetching services for userId:', userId); 
     const purchases = await Purchase.find({ userId, status: 'active' }).populate('servicePlanId');
     const services = purchases.map(p => ({
       id: p._id,

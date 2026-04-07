@@ -6,10 +6,10 @@ const NAV_ITEMS = [
   { id: "services", label: "My Services", icon: "server" },
   { id: "invoices", label: "Invoices", icon: "file-text" },
   { id: "tickets", label: "Support", icon: "message-circle" },
+  { id: "knowledge-base", label: "Knowledge Base", icon: "book-open" },
   { id: "profile", label: "Profile", icon: "users" },
   { id: "marketplace", label: "Marketplace", icon: "shopping-cart" },
 ];
-
 export default function Sidebar({ collapsed, onToggle }) {
   const location = useLocation();
 

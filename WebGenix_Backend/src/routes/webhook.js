@@ -34,6 +34,9 @@ router.post('/razorpay', express.raw({ type: 'application/json' }), async (req, 
     });
     const order = await razorpay.orders.fetch(payment.order_id);
     const notes = order.notes; // { userId, serviceId, planId }
+    console.log('📦 Webhook notes:', notes); // ADD THIS
+    console.log('🔍 Looking for purchases with userId:', notes.userId);
+
 
     if (!notes.userId || !notes.serviceId || !notes.planId) {
       console.error('Missing notes', notes);

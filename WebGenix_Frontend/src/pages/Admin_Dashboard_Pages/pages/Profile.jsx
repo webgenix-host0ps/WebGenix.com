@@ -1,99 +1,74 @@
-import keycloak from "../../../auth/keycloak";
+import { useState, useEffect } from 'react';
+import keycloak from '../../../auth/keycloak';
+import { authFetch } from '../../../utils/authFetch';
+
+const fmtId = id => id ? `${id.slice(0, 8)}…${id.slice(-4)}` : '—';
+
+function InfoRow({ label, value, mono }) {
+  return (
+    <div className="flex items-start justify-between gap-4 py-3 border-b border-[#1a1a1a] last:border-0">
+      <p className="text-xs text-[#444] flex-shrink-0 w-28">{label}</p>
+      <p className={`text-sm text-[#e5e5e5] text-right break-all ${mono ? 'font-mono text-xs' : ''}`}>
+        {value || '—'}
+      </p>
+    </div>
+  );
+}
 
 export default function Profile() {
   const user = keycloak.tokenParsed;
+  const initials = (user?.name || user?.preferred_username || 'U')
+    .split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
 
-  // 🔄 Sync user to Zammad
-  const syncUser = async () => {
-    try {
-      await keycloak.updateToken(30);
-
-      const res = await fetch("http://localhost:5000/api/users/sync", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${keycloak.token}`
-        }
-      });
-
-      const data = await res.json();
-
-      console.log(data);
-      alert(data.message || "Sync completed");
-
-    } catch (err) {
-      console.error("Sync error:", err);
-      alert("Error syncing user");
-    }
-  };
+  const roles = (user?.realm_access?.roles || []).filter(r =>
+    !['offline_access', 'uma_authorization', 'default-roles-webgenix'].includes(r)
+  );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-white max-w-2xl">
+      <div>
+        <h1 className="text-base font-semibold text-[#f0f0f0]">My Profile</h1>
+        <p className="text-xs text-[#444] mt-0.5">Your account information</p>
+      </div>
 
-      <h1 className="text-xl text-white font-semibold">
-        My Profile
-      </h1>
-
-      <div className="bg-[#141414] border border-[#262626] rounded-xl p-6 space-y-5">
-
-        {/* Username */}
-        <div>
-          <p className="text-xs text-[#525252]">Username</p>
-          <p className="text-white">
-            {user?.preferred_username || "N/A"}
-          </p>
+      <div className="bg-[#111] border border-[#1e1e1e] rounded-2xl p-5 flex items-center gap-4">
+        <div className="w-14 h-14 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 text-lg font-bold flex-shrink-0">
+          {initials}
         </div>
-
-        {/* Full Name */}
-        <div>
-          <p className="text-xs text-[#525252]">Full Name</p>
-          <p className="text-white">
-            {user?.name || "N/A"}
+        <div className="flex-1 min-w-0">
+          <p className="text-base font-semibold text-[#f0f0f0] truncate">
+            {user?.name || user?.preferred_username}
           </p>
+          <p className="text-xs text-[#444] truncate mt-0.5">{user?.email}</p>
         </div>
+      </div>
 
-        {/* Email */}
-        <div>
-          <p className="text-xs text-[#525252]">Email</p>
-          <p className="text-white">
-            {user?.email || "N/A"}
-          </p>
+      <div className="bg-[#111] border border-[#1e1e1e] rounded-2xl overflow-hidden">
+        <div className="px-5 py-3.5 border-b border-[#1a1a1a] bg-[#0d0d0d]">
+          <p className="text-xs font-medium text-[#444] uppercase tracking-widest">Account Details</p>
         </div>
-
-        {/* User ID */}
-        <div>
-          <p className="text-xs text-[#525252]">User ID</p>
-          <p className="text-white break-all">
-            {user?.sub}
-          </p>
+        <div className="px-5">
+          <InfoRow label="Full name" value={user?.name} />
+          <InfoRow label="Username" value={user?.preferred_username} />
+          <InfoRow label="Email" value={user?.email} />
+          <InfoRow label="User ID" value={fmtId(user?.sub)} mono />
         </div>
+      </div>
 
-        {/* Roles */}
-        <div>
-          <p className="text-xs text-[#525252]">Roles</p>
-          <div className="flex gap-2 mt-1 flex-wrap">
-            {user?.realm_access?.roles?.map((role, index) => (
-              <span
-                key={index}
-                className="text-xs px-2 py-1 bg-blue-500/10 text-blue-400 rounded"
-              >
+      {roles.length > 0 && (
+        <div className="bg-[#111] border border-[#1e1e1e] rounded-2xl overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-[#1a1a1a] bg-[#0d0d0d]">
+            <p className="text-xs font-medium text-[#444] uppercase tracking-widest">Roles</p>
+          </div>
+          <div className="px-5 py-4 flex flex-wrap gap-2">
+            {roles.map(role => (
+              <span key={role} className="text-xs px-2.5 py-1 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-lg font-medium">
                 {role}
               </span>
             ))}
           </div>
         </div>
-
-        {/* 🔥 Sync Button */}
-        <div className="pt-4">
-          <button
-            onClick={syncUser}
-            className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm rounded"
-          >
-            Sync User to Zammad
-          </button>
-        </div>
-
-      </div>
-
+      )}
     </div>
   );
 }

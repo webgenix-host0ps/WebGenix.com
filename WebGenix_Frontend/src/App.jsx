@@ -42,6 +42,9 @@ import SupportDashboard from './pages/Support_Dashboard_Pages/SupportDashboard';
 import ClientLayout from './pages/Client_Dashboard_Pages/layout/ClientLayout';
 import ClientService from './pages/Client_Dashboard_Pages/pages/Services';
 import ClientServicesPage from './pages/Client_Dashboard_Pages/pages/ClientServicesPage';
+import Invoices from './pages/Client_Dashboard_Pages/pages/Invoices';
+import ClientProfile  from './pages/Client_Dashboard_Pages/pages/Profile';
+
 
 
 // ----------------------
@@ -150,6 +153,10 @@ function App() {
         <Route path="overview" element={<ClientOverview />} />
         <Route path="services" element={<ClientService />} /> 
         <Route path="marketplace" element={<ClientServicesPage />} /> 
+        <Route path="invoices" element={<Invoices />} />
+        <Route path="profile" element={<ClientProfile />} />
+
+
       </Route>
 
         {/* =====================================================

@@ -1,151 +1,176 @@
-networks:
-  zammad-net:
-    driver: bridge
+# =============================================================================
+# Zammad 7.0.0 — docker-compose.yml
+#
+# DEVELOPMENT SETUP — includes SSL verification bypass for Keycloak over HTTP.
+#
+# ⚠️  PRODUCTION NOTE: Remove the `zammad-initializers` volume mount from
+#     zammad-railsserver and delete the omniauth_ssl_bypass initializer before
+#     going live. SSL verification MUST be enabled in production.
+#
+# Usage:
+#   docker compose up -d
+#
+# First-run only (migrations, locale sync):
+#   docker compose run --rm zammad-init
+# =============================================================================
 
-volumes:
-  zammad-elasticsearch-data:
-  zammad-postgresql-data:
-  zammad-redis-data:
-  zammad-storage:
-  zammad-backup:
-
+# ── Shared config anchor ──────────────────────────────────────────────────────
 x-zammad-service: &zammad-service
   image: ghcr.io/zammad/zammad:7.0.0-1
-  restart: always
+  restart: unless-stopped
+  depends_on:
+    - zammad-postgresql
+    - zammad-redis
+    - zammad-elasticsearch
+    - zammad-memcached
   networks:
     - zammad-net
-  environment: &zammad-environment
-    MEMCACHE_SERVERS: zammad-memcached:11211
-    POSTGRESQL_DB: zammad_production
+  environment: &zammad-env
+    # ── Database ──────────────────────────────────────────────────────────────
     POSTGRESQL_HOST: zammad-postgresql
-    POSTGRESQL_USER: zammad
-    POSTGRESQL_PASS: zammad_secret
     POSTGRESQL_PORT: "5432"
-    POSTGRESQL_OPTIONS: "?pool=50"
+    POSTGRESQL_USER: zammad
+    POSTGRESQL_PASS: zammad
+    POSTGRESQL_DB: zammad_production
+
+    # ── Cache / Sessions ──────────────────────────────────────────────────────
     REDIS_URL: redis://zammad-redis:6379
-    ELASTICSEARCH_ENABLED: "true"
+    MEMCACHE_SERVERS: zammad-memcached:11211
+
+    # ── Search ────────────────────────────────────────────────────────────────
     ELASTICSEARCH_HOST: zammad-elasticsearch
     ELASTICSEARCH_PORT: "9200"
     ELASTICSEARCH_SCHEMA: http
     ELASTICSEARCH_NAMESPACE: zammad
-    ELASTICSEARCH_REINDEX: "false"
-    BACKUP_DIR: /var/tmp/zammad
-    BACKUP_TIME: "03:00"
-    HOLD_DAYS: "10"
-    TZ: Asia/Kolkata
-  volumes:
-    - zammad-backup:/var/tmp/zammad:ro
-    - zammad-storage:/opt/zammad/storage
-  depends_on:
-    - zammad-memcached
-    - zammad-postgresql
-    - zammad-redis
 
+    # ── App ───────────────────────────────────────────────────────────────────
+    RAILS_ENV: production
+    RAILS_LOG_TO_STDOUT: "true"
+    ZAMMAD_RAILSSERVER_HOST: zammad-railsserver
+    ZAMMAD_WEBSOCKET_HOST: zammad-websocket
+
+    # ── Dev: allow Keycloak over plain HTTP inside Docker ─────────────────────
+    # Remove in production
+    OPENID_CONNECT_DISABLE_SSL_VERIFY: "true"
+
+  volumes: &zammad-volumes
+    - zammad-storage:/opt/zammad/storage
+    # Custom initializer that bypasses SSL for OpenID Connect (dev only)
+    - zammad-initializers:/opt/zammad/config/initializers/custom
+
+# ── Services ─────────────────────────────────────────────────────────────────
 services:
 
-  # ── Memcached ──
-  zammad-memcached:
-    image: memcached:1.6.40-alpine
-    container_name: zammad-memcached
-    restart: always
-    networks:
-      - zammad-net
-    command: memcached -m 256M
-
-  # ── PostgreSQL (kept at v15 to match existing volume data) ──
-  zammad-postgresql:
-    image: postgres:15-alpine
-    container_name: zammad-postgresql
-    restart: always
-    networks:
-      - zammad-net
-    environment:
-      POSTGRES_DB: zammad_production
-      POSTGRES_USER: zammad
-      POSTGRES_PASSWORD: zammad_secret
-    volumes:
-      - zammad-postgresql-data:/var/lib/postgresql/data
-
-  # ── Redis ──
-  zammad-redis:
-    image: redis:7-alpine
-    container_name: zammad-redis
-    restart: always
-    networks:
-      - zammad-net
-    volumes:
-      - zammad-redis-data:/data
-
-  # ── Elasticsearch ──
-  zammad-elasticsearch:
-    image: elasticsearch:8.13.4
-    container_name: zammad-elasticsearch
-    restart: always
-    networks:
-      - zammad-net
-    environment:
-      discovery.type: single-node
-      xpack.security.enabled: "false"
-      ES_JAVA_OPTS: -Xms512m -Xmx512m
-    volumes:
-      - zammad-elasticsearch-data:/usr/share/elasticsearch/data
-
-  # ── Init (runs once then exits with code 0) ──
+  # ── Init (runs once, then exits) ───────────────────────────────────────────
+  # Handles: DB creation, migrations, locale sync, Elasticsearch index.
+  # Re-run manually if you update Zammad: docker compose run --rm zammad-init
   zammad-init:
     <<: *zammad-service
-    container_name: zammad-init
+    restart: "no"
     command: ["zammad-init"]
-    restart: on-failure
-    user: "0:0"
-    environment:
-      <<: *zammad-environment
-      POSTGRESQL_DB_CREATE: "true"
     volumes:
-      - zammad-backup:/var/tmp/zammad
       - zammad-storage:/opt/zammad/storage
-    depends_on:
-      - zammad-memcached
-      - zammad-postgresql
-      - zammad-redis
-      - zammad-elasticsearch
+      - zammad-initializers:/opt/zammad/config/initializers/custom
 
-  # ── Rails Server ──
+  # ── Rails server ───────────────────────────────────────────────────────────
   zammad-railsserver:
     <<: *zammad-service
-    container_name: zammad-railsserver
     command: ["zammad-railsserver"]
+    volumes:
+      - zammad-storage:/opt/zammad/storage
+      - zammad-initializers:/opt/zammad/config/initializers/custom
+    # Allow Zammad → Keycloak over HTTP on your Windows host
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
-  # ── Scheduler ──
-  zammad-scheduler:
-    <<: *zammad-service
-    container_name: zammad-scheduler
-    command: ["zammad-scheduler"]
-
-  # ── Websocket ──
+  # ── Websocket server ───────────────────────────────────────────────────────
   zammad-websocket:
     <<: *zammad-service
-    container_name: zammad-websocket
     command: ["zammad-websocket"]
 
-  # ── Nginx (port 8090 → no conflict with Keycloak on 8080) ──
+  # ── Background jobs (scheduler) ────────────────────────────────────────────
+  zammad-scheduler:
+    <<: *zammad-service
+    command: ["zammad-scheduler"]
+
+  # ── Nginx (public entry point) ─────────────────────────────────────────────
   zammad-nginx:
     <<: *zammad-service
-    container_name: zammad-nginx
     command: ["zammad-nginx"]
     ports:
       - "8090:8080"
     depends_on:
       - zammad-railsserver
-      - zammad-memcached
-      - zammad-postgresql
-      - zammad-redis
+      - zammad-websocket
 
-  # ── Backup ──
+  # ── PostgreSQL 15 ─────────────────────────────────────────────────────────
+  zammad-postgresql:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    networks:
+      - zammad-net
+    environment:
+      POSTGRES_USER: zammad
+      POSTGRES_PASSWORD: zammad
+      POSTGRES_DB: zammad_production
+    volumes:
+      - zammad-postgresql-data:/var/lib/postgresql/data
+
+  # ── Redis 7 ───────────────────────────────────────────────────────────────
+  zammad-redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks:
+      - zammad-net
+    volumes:
+      - zammad-redis-data:/data
+
+  # ── Elasticsearch 8.13.4 ──────────────────────────────────────────────────
+  zammad-elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+    restart: unless-stopped
+    networks:
+      - zammad-net
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    volumes:
+      - zammad-elasticsearch-data:/usr/share/elasticsearch/data
+
+  # ── Memcached ─────────────────────────────────────────────────────────────
+  zammad-memcached:
+    image: memcached:1.6-alpine
+    restart: unless-stopped
+    networks:
+      - zammad-net
+    command: ["memcached", "-m", "256m"]
+
+  # ── Backup (daily at 03:00) ────────────────────────────────────────────────
+  # Dumps PostgreSQL + copies storage into zammad-backup volume.
+  # Access backups: docker exec zammad-backup ls /var/tmp/zammad
   zammad-backup:
     <<: *zammad-service
-    container_name: zammad-backup
     command: ["zammad-backup"]
-    user: "0:0"
+    restart: unless-stopped
+    environment:
+      <<: *zammad-env
+      BACKUP_TIME: "03:00"
+      HOLD_DAYS: "10"
     volumes:
+      - zammad-storage:/opt/zammad/storage:ro
       - zammad-backup:/var/tmp/zammad
-      - zammad-storage:/opt/zammad/storage
+
+# ── Volumes ───────────────────────────────────────────────────────────────────
+volumes:
+  zammad-postgresql-data:
+  zammad-redis-data:
+  zammad-elasticsearch-data:
+  zammad-storage:
+  zammad-backup:
+  zammad-initializers:
+
+# ── Network ───────────────────────────────────────────────────────────────────
+networks:
+  zammad-net:
+    driver: bridge
