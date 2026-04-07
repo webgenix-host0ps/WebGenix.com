@@ -10,6 +10,7 @@ import cors from "cors";
 import paymentRoutes from "./routes/payment.js";
 import webhookRoutes from "./routes/webhook.js";
 import clientRoutes from "./routes/client.js";
+import ticketRoutes from './routes/ticketRoutes.js';
 
 mongoose
   .connect(process.env.MONGO_URI)
@@ -33,6 +34,8 @@ app.use(express.json());
 // app.use("/api/tickets", ticketRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/client", clientRoutes);
+app.use('/api/tickets', ticketRoutes);
+
 
 app.listen(process.env.PORT, () => {
   console.log("Backend running on port " + process.env.PORT);

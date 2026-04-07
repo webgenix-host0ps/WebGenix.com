@@ -33,36 +33,36 @@ import RedirectDashboard from './pages/RedirectDashboard';
 // Role-Based Dashboards
 import AdminDashboard from './pages/Admin_Dashboard_Pages/AdminDashboard';
 import SupportDashboard from './pages/Support_Dashboard_Pages/SupportDashboard';
-// import ClientDashboard from './pages/Client_Dashboard_Pages/ClientDashboard';
-// import Overview from './pages/Client_Dashboard_Pages/pages/Overview';
 
-
-
-
+// Client Dashboard
 import ClientLayout from './pages/Client_Dashboard_Pages/layout/ClientLayout';
 import ClientService from './pages/Client_Dashboard_Pages/pages/Services';
 import ClientServicesPage from './pages/Client_Dashboard_Pages/pages/ClientServicesPage';
 import Invoices from './pages/Client_Dashboard_Pages/pages/Invoices';
-import ClientProfile  from './pages/Client_Dashboard_Pages/pages/Profile';
+import ClientProfile from './pages/Client_Dashboard_Pages/pages/Profile';
+import Tickets from './pages/Client_Dashboard_Pages/pages/Tickets';
+import TicketDetail from './pages/Client_Dashboard_Pages/pages/TicketDetail';
+import ClientOverview from './pages/Client_Dashboard_Pages/pages/Overview';
 
+// Support Dashboard Pages
+import SupportLayout from './pages/Support_Dashboard_Pages/layout/SupportLayout';
+import AllTickets from './pages/Support_Dashboard_Pages/pages/AllTickets';
+import MyAssignedTickets from './pages/Support_Dashboard_Pages/pages/MyAssignedTickets';
+import SupportTicketDetail from './pages/Support_Dashboard_Pages/pages/SupportTicketDetail';
+import SupportOverview from './pages/Support_Dashboard_Pages/pages/Overview';
 
-
-// ----------------------
 // Admin Dashboard Pages
-// ----------------------
 import AdminLayout from './pages/Admin_Dashboard_Pages/layout/AdminLayout';
-// import Overview from './pages/Admin_Dashboard_Pages/pages/Overview';
 import Users from './pages/Admin_Dashboard_Pages/pages/Users';
 import UserDetails from './pages/Admin_Dashboard_Pages/pages/UserDetails';
 import Services from './pages/Admin_Dashboard_Pages/pages/Services';
 import Profile from './pages/Admin_Dashboard_Pages/pages/Profile';
 import Settings from './pages/Admin_Dashboard_Pages/pages/Settings';
-// import Tickets from './pages/Admin_Dashboard_Pages/pages/Tickets';
 import AdminOverview from './pages/Admin_Dashboard_Pages/pages/Overview';
-import ClientOverview from './pages/Client_Dashboard_Pages/pages/Overview';
-// ----------------------
+import AdminTickets from './pages/Admin_Dashboard_Pages/pages/AdminTickets';
+
+
 // Service Pages
-// ----------------------
 import StaticHostingPage from './pages/StaticHostingPage';
 import DynamicHostingPage from './pages/DynamicHostingPage';
 import WebsiteBuilderPage from './pages/WebsiteBuilderPage';
@@ -81,7 +81,7 @@ import BackupSolutionsPage from './pages/BackupSolutionsPage';
 import SharedHostingPage from './pages/SharedHostingPage';
 import VpsPage from './pages/VpsPage';
 
-// Auth حماية (Route Guard)
+// Auth Route Guard
 import ProtectedRoute from './auth/ProtectedRoute';
 
 function App() {
@@ -117,27 +117,32 @@ function App() {
             </ProtectedRoute>
           }
         >
-          {/* Nested Admin Routes */}
           <Route path="overview" element={<AdminOverview />} />
           <Route path="users" element={<Users />} />
           <Route path="users/:id" element={<UserDetails />} />
           <Route path="services" element={<Services />} />
           <Route path="profile" element={<Profile />} />
           <Route path="settings" element={<Settings />} />
-          {/* <Route path="tickets" element={<Tickets />} /> */}
+          <Route path="tickets" element={<AdminTickets />} />
+
         </Route>
 
         {/* =====================================================
             SUPPORT DASHBOARD (ROLE: support, admin)
         ===================================================== */}
         <Route
-          path="/support/dashboard"
+          path="/support/dashboard/*"
           element={
             <ProtectedRoute allowedRoles={['support', 'admin']}>
-              <SupportDashboard />
+              <SupportLayout />
             </ProtectedRoute>
           }
-        />
+        >
+          <Route path="overview" element={<SupportOverview />} />
+          <Route path="all-tickets" element={<AllTickets />} />
+          <Route path="my-tickets" element={<MyAssignedTickets />} />
+          <Route path="ticket/:id" element={<SupportTicketDetail />} />
+        </Route>
 
         {/* =====================================================
             CLIENT DASHBOARD (ROLE: client)
@@ -145,19 +150,19 @@ function App() {
         <Route
           path="/client/dashboard/*"
           element={
-          <ProtectedRoute allowedRoles={['client']}>
-            <ClientLayout />
-          </ProtectedRoute>
-        }
-      >
-        <Route path="overview" element={<ClientOverview />} />
-        <Route path="services" element={<ClientService />} /> 
-        <Route path="marketplace" element={<ClientServicesPage />} /> 
-        <Route path="invoices" element={<Invoices />} />
-        <Route path="profile" element={<ClientProfile />} />
-
-
-      </Route>
+            <ProtectedRoute allowedRoles={['client']}>
+              <ClientLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route path="overview" element={<ClientOverview />} />
+          <Route path="services" element={<ClientService />} />
+          <Route path="marketplace" element={<ClientServicesPage />} />
+          <Route path="invoices" element={<Invoices />} />
+          <Route path="profile" element={<ClientProfile />} />
+          <Route path="tickets" element={<Tickets />} />
+          <Route path="tickets/:id" element={<TicketDetail />} />
+        </Route>
 
         {/* =====================================================
             SERVICE PAGES

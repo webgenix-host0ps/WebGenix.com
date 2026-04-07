@@ -21,7 +21,7 @@ const SUPPORT_ROLES = [
   "webgenix_support_role",
   "app-support",
   "support",
-  "SUPPORT",
+  "SUPPORT  ",
   "Support",
 ];
 
