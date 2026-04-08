@@ -565,3 +565,44 @@ export const adminGetStats = async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch stats' });
   }
 };
+
+
+// =============================================
+// ADMIN: GET SINGLE TICKET WITH ALL MESSAGES (including internal notes)
+// =============================================
+export const adminGetTicketById = async (req, res) => {
+  try {
+    const user = req.user;
+    if (!isAdmin(user)) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const { id } = req.params;
+    const [ticket] = await db.select().from(tickets).where(eq(tickets.id, parseInt(id)));
+    
+    if (!ticket) {
+      return res.status(404).json({ error: 'Ticket not found' });
+    }
+
+    // Get ALL messages (including internal notes) – no filter
+    const messages = await db.select()
+      .from(ticketMessages)
+      .where(eq(ticketMessages.ticketId, ticket.id))
+      .orderBy(ticketMessages.createdAt);
+
+    // Optionally get assignment history
+    const assignments = await db.select()
+      .from(ticketAssignments)
+      .where(eq(ticketAssignments.ticketId, ticket.id))
+      .orderBy(ticketAssignments.assignedAt);
+
+    res.json({
+      ...ticket,
+      messages,
+      assignments,
+    });
+  } catch (err) {
+    console.error('Admin get ticket error:', err);
+    res.status(500).json({ error: 'Failed to fetch ticket' });
+  }
+};

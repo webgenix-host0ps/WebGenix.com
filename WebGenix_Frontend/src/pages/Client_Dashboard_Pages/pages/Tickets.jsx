@@ -17,17 +17,28 @@ export default function Tickets() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  // Fetch tickets on load
   const fetchTickets = async () => {
     setLoading(true);
     try {
       const res = await authFetch('/api/tickets');
+      
+      // Check if response is OK before trying to parse JSON
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Failed to fetch tickets: ${res.status} ${errorText}`);
+      }
+      
+      // Ensure the response has JSON content type
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Received non-JSON response from server');
+      }
+      
       const data = await res.json();
-      // API returns { data: [...], pagination: {...} }
       setTickets(data.data || []);
     } catch (err) {
       console.error('Fetch error:', err);
-      setError('Failed to load tickets');
+      setError(err.message || 'Failed to load tickets');
     } finally {
       setLoading(false);
     }
@@ -37,33 +48,31 @@ export default function Tickets() {
     fetchTickets();
   }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!form.subject.trim() || !form.description.trim()) {
-      setError('Subject and description are required');
-      return;
-    }
-    setSubmitting(true);
-    setError('');
-    try {
-      const res = await authFetch('/api/tickets', {
-        method: 'POST',
-        body: JSON.stringify(form),
-      });
-      if (res.ok) {
-        setShowModal(false);
-        setForm({ subject: '', description: '', department: 'technical', priority: 'normal' });
-        fetchTickets(); // refresh list
-      } else {
-        const err = await res.json();
-        setError(err.error || 'Failed to create ticket');
-      }
-    } catch (err) {
-      setError('Network error');
-    } finally {
-      setSubmitting(false);
-    }
-  };
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  if (!form.subject.trim() || !form.description.trim()) {
+    setError('Subject and description are required');
+    return;
+  }
+  setSubmitting(true);
+  setError('');
+  try {
+    const res = await authFetch('/api/tickets', {
+      method: 'POST',
+      body: JSON.stringify(form),
+    });
+
+    // authFetch throws on !res.ok, so we only get here on success
+    setShowModal(false);
+    setForm({ subject: '', description: '', department: 'technical', priority: 'normal' });
+    fetchTickets(); // refresh list
+  } catch (err) {
+    console.error('Create ticket error:', err);
+    setError(err.message); // now err.message contains the real server error
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   const getStatusBadge = (status) => {
     const styles = {

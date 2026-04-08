@@ -8,7 +8,8 @@ import {
   addReply,
   updateTicket,
   rateTicket,
-  getMyAssignedTickets,  // Make sure this is imported
+  getMyAssignedTickets,
+  adminGetTicketById,
 } from '../controllers/ticketController.js';
 
 import {
@@ -58,5 +59,8 @@ router.post('/admin/tickets/bulk', verifyToken, adminBulkUpdate);
 
 // Admin get stats
 router.get('/admin/stats', verifyToken, adminGetStats);
+
+// Admin get single ticket (with internal notes)
+router.get('/admin/tickets/:id', verifyToken, adminGetTicketById);
 
 export default router;

@@ -60,6 +60,8 @@ import Profile from './pages/Admin_Dashboard_Pages/pages/Profile';
 import Settings from './pages/Admin_Dashboard_Pages/pages/Settings';
 import AdminOverview from './pages/Admin_Dashboard_Pages/pages/Overview';
 import AdminTickets from './pages/Admin_Dashboard_Pages/pages/AdminTickets';
+import AdminTicketDetail from './pages/Admin_Dashboard_Pages/pages/AdminTicketDetail';
+
 
 
 // Service Pages
@@ -124,6 +126,8 @@ function App() {
           <Route path="profile" element={<Profile />} />
           <Route path="settings" element={<Settings />} />
           <Route path="tickets" element={<AdminTickets />} />
+          <Route path="ticket/:id" element={<AdminTicketDetail />} />
+
 
         </Route>
 

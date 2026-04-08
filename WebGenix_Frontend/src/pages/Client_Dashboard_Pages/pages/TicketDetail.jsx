@@ -1,5 +1,5 @@
 // src/pages/Client_Dashboard_Pages/pages/TicketDetail.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { authFetch } from '../../../utils/authFetch';
 import Icon from '../../../components/ui/Icon';
@@ -16,24 +16,43 @@ export default function TicketDetail() {
   const [ratingSubmitting, setRatingSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  const fetchCountRef = useRef(0);
+
   const fetchTicket = async () => {
+    const fetchId = fetchCountRef.current + 1;
+    fetchCountRef.current = fetchId;
     setLoading(true);
     try {
       const res = await authFetch(`/api/tickets/${id}`);
       if (!res.ok) throw new Error('Ticket not found');
       const data = await res.json();
-      setTicket(data);
-      setMessages(data.messages || []);
-      if (data.status === 'resolved' && data.csatRating) {
-        setRating(data.csatRating);
+      if (fetchId === fetchCountRef.current) {
+        setTicket(data);
+        setMessages(data.messages || []);
+        if (data.status === 'resolved' && data.csatRating) {
+          setRating(data.csatRating);
+        }
       }
     } catch (err) {
       console.error(err);
-      navigate('/client/dashboard/tickets');
+      if (fetchId === fetchCountRef.current) {
+        navigate('/client/dashboard/tickets');
+      }
     } finally {
-      setLoading(false);
+      if (fetchId === fetchCountRef.current) {
+        setLoading(false);
+      }
     }
   };
+
+  useEffect(() => {
+    // Reset all state immediately when ticket ID changes
+    setTicket(null);
+    setMessages([]);
+    setRating(null);
+    setError('');
+    fetchTicket();
+  }, [id]);
 
   const submitReply = async () => {
     if (!replyText.trim()) return;
@@ -46,7 +65,7 @@ export default function TicketDetail() {
       });
       if (res.ok) {
         setReplyText('');
-        fetchTicket(); // refresh conversation
+        fetchTicket();
       } else {
         const err = await res.json();
         setError(err.error || 'Failed to send reply');
@@ -78,10 +97,6 @@ export default function TicketDetail() {
       setRatingSubmitting(false);
     }
   };
-
-  useEffect(() => {
-    fetchTicket();
-  }, [id]);
 
   if (loading) return <div className="text-white p-6">Loading ticket...</div>;
   if (!ticket) return null;
@@ -138,7 +153,7 @@ export default function TicketDetail() {
         ) : (
           messages.map((msg, idx) => (
             <div
-              key={idx}
+              key={msg.id || `${msg.createdAt}-${idx}`}
               className={`p-4 rounded-xl border ${
                 msg.senderRole === 'client'
                   ? 'bg-[#111] border-[#262626] ml-0 mr-8'

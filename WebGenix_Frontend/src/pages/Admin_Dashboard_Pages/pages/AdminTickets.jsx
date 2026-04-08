@@ -1,89 +1,118 @@
 // src/pages/Admin_Dashboard_Pages/pages/AdminTickets.jsx
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { authFetch } from '../../../utils/authFetch';
 import Icon from '../../../components/ui/Icon';
 
 export default function AdminTickets() {
+  const navigate = useNavigate();
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
   const [selectedTickets, setSelectedTickets] = useState([]);
   const [filters, setFilters] = useState({
-  status: '',
-  priority: '',
-  department: '',
-  search: ''
-});
+    status: '',
+    priority: '',
+    department: '',
+    search: ''
+  });
   const [pagination, setPagination] = useState({ 
-  page: 1, 
-  limit: 20,    // ← This must exist
-  total: 0,
-  pages: 0
-});
+    page: 1, 
+    limit: 20,
+    total: 0,
+    pages: 0
+  });
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [bulkAction, setBulkAction] = useState({ type: '', value: '' });
 
-// In AdminTickets.jsx - Fix the fetchTickets function
-const fetchTickets = async () => {
-  try {
-    // Make sure limit has a default value
-    const currentLimit = pagination.limit || 20;
-    
-    const query = new URLSearchParams({
-      status: filters.status || '',
-      priority: filters.priority || '',
-      department: filters.department || '',
-      search: filters.search || '',
-      page: pagination.page || 1,
-      limit: currentLimit,
-    }).toString();
-    
-    const data = await authFetch(`/api/tickets/admin/tickets?${query}`);
-    
-    // ✅ FIXED: Check for 'tickets' property (not 'data')
-    if (data && data.tickets && data.pagination) {
-      setTickets(data.tickets);
-      setPagination(data.pagination);
-    } else {
-      console.error('Tickets API error: Invalid response', data);
-      setTickets([]);
-      setPagination({ page: 1, limit: 20, total: 0, totalPages: 0 });
+  // Helper to safely extract JSON from authFetch
+  const safeFetch = async (url, options = {}) => {
+    const response = await authFetch(url, options);
+    // If authFetch already returns parsed JSON, response is the data.
+    // If it returns a Response object, parse it.
+    if (response && typeof response.json === 'function') {
+      const data = await response.json();
+      console.log(`📡 ${url} (parsed from Response):`, data);
+      return data;
     }
-  } catch (err) {
-    console.error('Tickets request failed:', err);
-    setTickets([]);
-    setPagination({ page: 1, limit: 20, total: 0, totalPages: 0 });
-  }
-};
+    console.log(`📡 ${url} (already parsed):`, response);
+    return response;
+  };
 
-// Fix the fetchStats function
-const fetchStats = async () => {
-  try {
-    const data = await authFetch('/api/tickets/admin/stats');
-    
-    // ✅ FIXED: Stats are directly in the response
-    if (data && data.stats) {
-      setStats(data.stats);
-    } else {
-      console.error('Stats API error:', data);
+  const fetchTickets = async () => {
+    try {
+      setLoading(true);
+      const currentLimit = pagination.limit || 20;
+      const query = new URLSearchParams({
+        status: filters.status || '',
+        priority: filters.priority || '',
+        department: filters.department || '',
+        search: filters.search || '',
+        page: pagination.page || 1,
+        limit: currentLimit,
+      }).toString();
+      
+      const data = await safeFetch(`/api/tickets/admin/tickets?${query}`);
+      
+      // 🔍 Debug: see exact structure
+      console.log('🎫 Tickets API response structure:', Object.keys(data));
+      
+      // Try multiple possible property names
+      if (data && data.tickets) {
+        setTickets(data.tickets);
+        if (data.pagination) setPagination(data.pagination);
+      } else if (data && data.data) {
+        // Fallback if backend returns { data: [], pagination: {} }
+        setTickets(data.data);
+        if (data.pagination) setPagination(data.pagination);
+      } else if (Array.isArray(data)) {
+        // If backend returns array directly
+        setTickets(data);
+        setPagination(prev => ({ ...prev, total: data.length, pages: 1 }));
+      } else {
+        console.error('❌ Unknown tickets response structure:', data);
+        setTickets([]);
+      }
+    } catch (err) {
+      console.error('Tickets request failed:', err);
+      setTickets([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      const data = await safeFetch('/api/tickets/admin/stats');
+      console.log('📊 Stats response:', data);
+      
+      if (data && data.stats) {
+        setStats(data);
+      } else if (data && typeof data.total !== 'undefined') {
+        // If stats are flat in response
+        setStats({ stats: data });
+      } else {
+        console.error('❌ Unknown stats response structure:', data);
+        setStats(null);
+      }
+    } catch (err) {
+      console.error('Stats request failed:', err);
       setStats(null);
     }
-  } catch (err) {
-    console.error('Stats request failed:', err);
-    setStats(null);
-  }
-};
+  };
 
   useEffect(() => {
     fetchStats();
+  }, []); // Fetch stats once
+
+  useEffect(() => {
     fetchTickets();
-  }, [filters, pagination.page]);
+  }, [filters, pagination.page]); // Refetch when filters or page changes
 
   const deleteTicket = async (id, ticketId) => {
     if (confirm(`Delete ticket ${ticketId}? This action cannot be undone.`)) {
       try {
-        await authFetch(`/api/tickets/admin/tickets/${id}`, { method: 'DELETE' });
+        await safeFetch(`/api/tickets/admin/tickets/${id}`, { method: 'DELETE' });
         fetchTickets();
         fetchStats();
       } catch (err) {
@@ -95,7 +124,7 @@ const fetchStats = async () => {
   const bulkUpdate = async () => {
     if (selectedTickets.length === 0) return;
     try {
-      await authFetch('/api/tickets/admin/tickets/bulk', {
+      await safeFetch('/api/tickets/admin/tickets/bulk', {
         method: 'POST',
         body: JSON.stringify({
           ticketIds: selectedTickets,
@@ -162,14 +191,14 @@ const fetchStats = async () => {
       </div>
 
       {/* Stats Grid */}
-      {stats && (
+      {stats && stats.stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          <StatCard title="Total Tickets" value={stats.stats?.total} icon="ticket" color="bg-blue-500/20 text-blue-400" />
-          <StatCard title="Open" value={stats.stats?.open} icon="alert-circle" color="bg-orange-500/20 text-orange-400" />
-          <StatCard title="In Progress" value={stats.stats?.inProgress} icon="loader" color="bg-purple-500/20 text-purple-400" />
-          <StatCard title="Resolved" value={stats.stats?.resolved} icon="check-circle" color="bg-green-500/20 text-green-400" />
-          <StatCard title="Avg CSAT" value={stats.stats?.avgCsat?.toFixed(1)} icon="star" color="bg-yellow-500/20 text-yellow-400" />
-          <StatCard title="Closed" value={stats.stats?.closed} icon="archive" color="bg-gray-500/20 text-gray-400" />
+          <StatCard title="Total Tickets" value={stats.stats.total} icon="ticket" color="bg-blue-500/20 text-blue-400" />
+          <StatCard title="Open" value={stats.stats.open} icon="alert-circle" color="bg-orange-500/20 text-orange-400" />
+          <StatCard title="In Progress" value={stats.stats.inProgress} icon="loader" color="bg-purple-500/20 text-purple-400" />
+          <StatCard title="Resolved" value={stats.stats.resolved} icon="check-circle" color="bg-green-500/20 text-green-400" />
+          <StatCard title="Avg CSAT" value={stats.stats.avgCsat?.toFixed(1)} icon="star" color="bg-yellow-500/20 text-yellow-400" />
+          <StatCard title="Closed" value={stats.stats.closed} icon="archive" color="bg-gray-500/20 text-gray-400" />
         </div>
       )}
 
@@ -296,11 +325,17 @@ const fetchStats = async () => {
                     <td className="px-4 py-3 text-xs text-gray-500">{new Date(ticket.createdAt).toLocaleDateString()}</td>
                     <td className="px-4 py-3">
                       <div className="flex gap-2">
-                        <Link to={`/admin/dashboard/ticket/${ticket.id}`} className="text-blue-400 hover:text-blue-300">
-                          <Icon name="eye" size={16} />
-                        </Link>
-                        <button onClick={() => deleteTicket(ticket.id, ticket.ticketId)} className="text-red-400 hover:text-red-300">
-                          <Icon name="trash-2" size={16} />
+                        <button
+                          onClick={() => navigate(`/admin/dashboard/ticket/${ticket.id}`)}
+                          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-white font-bold text-xs"
+                        >
+                          VIEW
+                        </button>
+                        <button
+                          onClick={() => deleteTicket(ticket.id, ticket.ticketId)}
+                          className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-white font-bold text-xs"
+                        >
+                          DELETE
                         </button>
                       </div>
                     </td>
