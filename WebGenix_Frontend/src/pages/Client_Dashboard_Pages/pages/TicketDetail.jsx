@@ -7,6 +7,10 @@ import Icon from '../../../components/ui/Icon';
 export default function TicketDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  
+  // Use a state key to force reset when id changes
+  const [componentKey, setComponentKey] = useState(0);
+  
   const [ticket, setTicket] = useState(null);
   const [messages, setMessages] = useState([]);
   const [replyText, setReplyText] = useState('');
@@ -16,43 +20,86 @@ export default function TicketDetail() {
   const [ratingSubmitting, setRatingSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  const fetchCountRef = useRef(0);
+  const abortControllerRef = useRef(null);
+  const requestedIdRef = useRef(id);
 
-  const fetchTicket = async () => {
-    const fetchId = fetchCountRef.current + 1;
-    fetchCountRef.current = fetchId;
+  // Force a complete reset when id changes by incrementing key
+  useEffect(() => {
+    setComponentKey(prev => prev + 1);
+  }, [id]);
+
+  // Use the key to reset all state and fetch fresh
+  useEffect(() => {
+    // Cancel any ongoing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Store the requested ID for this fetch cycle
+    const currentRequestedId = id;
+    requestedIdRef.current = currentRequestedId;
+
+    // Reset all state immediately
+    setTicket(null);
+    setMessages([]);
+    setRating(null);
+    setError('');
     setLoading(true);
-    try {
-      const res = await authFetch(`/api/tickets/${id}`);
-      if (!res.ok) throw new Error('Ticket not found');
-      const data = await res.json();
-      if (fetchId === fetchCountRef.current) {
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    const fetchData = async () => {
+      try {
+        console.log(`🔵 Fetching ticket ID: ${currentRequestedId}`);
+        const res = await authFetch(`/api/tickets/${currentRequestedId}`, {
+          signal: controller.signal,
+        });
+        
+        if (!res.ok) throw new Error('Ticket not found');
+        const data = await res.json();
+        
+        // CRITICAL: Verify this response is for the ticket we requested
+        if (controller.signal.aborted) return;
+        if (requestedIdRef.current !== currentRequestedId) {
+          console.warn(`Stale response for ${currentRequestedId}, current is ${requestedIdRef.current}`);
+          return;
+        }
+        
+        // Additional verification: check the returned ticket's ID matches
+        if (String(data.id) !== String(currentRequestedId)) {
+          console.error(`ID mismatch! Requested: ${currentRequestedId}, Got: ${data.id}`);
+          setError(`Data mismatch. Please refresh the page.`);
+          setLoading(false);
+          return;
+        }
+        
+        console.log(`✅ Received ticket ${data.ticketId} with ${data.messages?.length} messages`);
         setTicket(data);
         setMessages(data.messages || []);
         if (data.status === 'resolved' && data.csatRating) {
           setRating(data.csatRating);
         }
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+        console.error('Fetch error:', err);
+        setError(err.message || 'Failed to load ticket');
+        if (err.message === 'Ticket not found') {
+          navigate('/client/dashboard/tickets');
+        }
+      } finally {
+        if (!controller.signal.aborted && requestedIdRef.current === currentRequestedId) {
+          setLoading(false);
+        }
       }
-    } catch (err) {
-      console.error(err);
-      if (fetchId === fetchCountRef.current) {
-        navigate('/client/dashboard/tickets');
-      }
-    } finally {
-      if (fetchId === fetchCountRef.current) {
-        setLoading(false);
-      }
-    }
-  };
+    };
 
-  useEffect(() => {
-    // Reset all state immediately when ticket ID changes
-    setTicket(null);
-    setMessages([]);
-    setRating(null);
-    setError('');
-    fetchTicket();
-  }, [id]);
+    fetchData();
+
+    return () => {
+      controller.abort();
+    };
+  }, [id, navigate]);
 
   const submitReply = async () => {
     if (!replyText.trim()) return;
@@ -65,14 +112,31 @@ export default function TicketDetail() {
       });
       if (res.ok) {
         setReplyText('');
-        fetchTicket();
+        // Refetch the ticket
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+        }
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+        setLoading(true);
+        
+        const currentId = id;
+        const res2 = await authFetch(`/api/tickets/${currentId}`, { signal: controller.signal });
+        if (res2.ok) {
+          const data = await res2.json();
+          if (!controller.signal.aborted && requestedIdRef.current === currentId) {
+            setTicket(data);
+            setMessages(data.messages || []);
+            setLoading(false);
+          }
+        }
       } else {
         const err = await res.json();
         setError(err.error || 'Failed to send reply');
+        setSubmitting(false);
       }
     } catch (err) {
-      setError('Network error');
-    } finally {
+      if (err.name !== 'AbortError') setError('Network error');
       setSubmitting(false);
     }
   };
@@ -98,7 +162,7 @@ export default function TicketDetail() {
     }
   };
 
-  if (loading) return <div className="text-white p-6">Loading ticket...</div>;
+  if (loading) return <div className="text-white p-6">Loading ticket {id}...</div>;
   if (!ticket) return null;
 
   const statusColor = {
@@ -117,7 +181,7 @@ export default function TicketDetail() {
   }[ticket.priority] || 'text-gray-400';
 
   return (
-    <div className="space-y-6 text-white max-w-4xl mx-auto">
+    <div className="space-y-6 text-white max-w-4xl mx-auto" key={componentKey}>
       {/* Header */}
       <div className="flex flex-wrap justify-between items-start gap-4">
         <div>

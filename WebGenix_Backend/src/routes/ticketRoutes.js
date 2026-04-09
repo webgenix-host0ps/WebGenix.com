@@ -10,57 +10,35 @@ import {
   rateTicket,
   getMyAssignedTickets,
   adminGetTicketById,
-} from '../controllers/ticketController.js';
-
-import {
-  // ... existing imports
   adminGetAllTickets,
   adminDeleteTicket,
   adminBulkUpdate,
   adminGetStats,
 } from '../controllers/ticketController.js';
 
-
 const router = express.Router();
 
 // All routes require authentication
 router.use(verifyToken);
 
-// Create ticket
-router.post('/', createTicket);
+// Public (client) routes
+router.post('/', createTicket);              // Create ticket
+router.get('/', listTickets);                // List tickets
+router.post('/:id/messages', addReply);      // Add reply
+router.put('/:id', updateTicket);            // Update ticket (support/admin)
+router.post('/:id/rate', rateTicket);        // Rate ticket
 
-// List tickets (with filters)
-router.get('/', listTickets);
+// Support-specific route
+router.get('/support/assigned-to-me', getMyAssignedTickets);
 
-// Get single ticket with messages
+// Admin routes (must come before generic /:id to avoid conflict)
+router.get('/admin/tickets', adminGetAllTickets);
+router.get('/admin/tickets/:id', adminGetTicketById);
+router.delete('/admin/tickets/:id', adminDeleteTicket);
+router.post('/admin/tickets/bulk', adminBulkUpdate);
+router.get('/admin/stats', adminGetStats);
+
+// Generic ticket detail route (keep LAST)
 router.get('/:id', getTicketById);
-
-// Add reply
-router.post('/:id/messages', addReply);
-
-// Update ticket (status, priority, assignee) – support/admin only
-router.put('/:id', updateTicket);
-
-// Rate ticket (CSAT) – client only after resolved
-router.post('/:id/rate', rateTicket);
-
-// Support: Get tickets assigned to me
-router.get('/support/assigned-to-me', verifyToken, getMyAssignedTickets);
-
-// Admin routes   
-// Admin get all tickets with filters
-router.get('/admin/tickets', verifyToken, adminGetAllTickets);
-
-// Admin delete ticket
-router.delete('/admin/tickets/:id', verifyToken, adminDeleteTicket);
-
-// Admin bulk update tickets (status, priority, assignee)
-router.post('/admin/tickets/bulk', verifyToken, adminBulkUpdate);
-
-// Admin get stats
-router.get('/admin/stats', verifyToken, adminGetStats);
-
-// Admin get single ticket (with internal notes)
-router.get('/admin/tickets/:id', verifyToken, adminGetTicketById);
 
 export default router;

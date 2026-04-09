@@ -19,49 +19,55 @@ export default function Header() {
 
     return (
         <header className="
-      fixed top-0 left-0 right-0 z-50
-      bg-dark-900/80 backdrop-blur-lg
-      border-b border-dark-700/50
-    ">
+        fixed top-0 left-0 right-0 z-50
+        bg-dark-900/70 backdrop-blur-xl
+        border-b border-dark-700/40
+        shadow-sm
+        ">
             <div className="max-w-7xl mx-auto px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
 
                     {/* Logo */}
-                    <Link to="/" className="flex items-center">
+                    <Link to="/" className="flex items-center gap-2">
                         <img src={logo} alt="Webgenix" className="h-8 w-auto" />
                     </Link>
 
-                    {/* Desktop Navigation */}
-                    <nav className="hidden md:flex items-center gap-8">
+                    {/* Desktop Nav */}
+                    <nav className="hidden md:flex items-center gap-10">
                         {navLinks.map((link) => (
                             <a
                                 key={link.name}
                                 href={link.href}
                                 className="
-                  text-sm text-text-secondary
-                  hover:text-text-primary
-                  transition-colors
-                "
+                                relative text-sm text-text-secondary
+                                hover:text-text-primary
+                                transition-colors duration-200
+                                after:absolute after:-bottom-1 after:left-0 after:w-0 after:h-[1px]
+                                after:bg-text-primary after:transition-all after:duration-300
+                                hover:after:w-full
+                                "
                             >
                                 {link.name}
                             </a>
                         ))}
                     </nav>
 
-                    {/* Desktop Auth */}
-                    <div className="hidden md:flex items-center gap-4">
+                    {/* Auth */}
+                    <div className="hidden md:flex items-center gap-3">
 
                         {!isLoggedIn ? (
                             <>
                                 <button
                                     className="text-sm text-text-secondary hover:text-text-primary transition-colors"
-                                    onClick={() => keycloak.login({  redirectUri: window.location.origin + "/dashboard"})}>
+                                    onClick={() => keycloak.login({ redirectUri: window.location.origin + "/dashboard" })}
+                                >
                                     Log in
                                 </button>
 
                                 <CTAButton
                                     variant="secondary"
                                     size="small"
+                                    className="shadow-md hover:shadow-lg hover:scale-[1.03] transition-all duration-200"
                                     onClick={() => keycloak.register()}
                                 >
                                     Sign up
@@ -89,7 +95,6 @@ export default function Header() {
                     <button
                         className="md:hidden p-2 text-text-secondary hover:text-text-primary"
                         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                        aria-label="Toggle menu"
                     >
                         <Icon name={mobileMenuOpen ? 'x' : 'menu'} size={24} />
                     </button>

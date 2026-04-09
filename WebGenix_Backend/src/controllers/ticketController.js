@@ -154,33 +154,47 @@ export const getTicketById = async (req, res) => {
   try {
     const user = req.user;
     const { id } = req.params;
-
-    let ticketQuery = db.select().from(tickets).where(eq(tickets.id, parseInt(id)));
-    if (!isSupportOrAdmin(user)) {
-      ticketQuery = ticketQuery.where(eq(tickets.userId, user.sub));
+    
+    const ticketId = parseInt(id, 10);
+    if (isNaN(ticketId)) {
+      return res.status(400).json({ error: 'Invalid ticket ID' });
     }
-    const [ticket] = await ticketQuery;
-
+    
+    console.log(`🔍 Fetching ticket ID ${ticketId} for user ${user.sub}`);
+    
+    // Build condition using sql template
+    let condition = sql`${tickets.id} = ${ticketId}`;
+    if (!isSupportOrAdmin(user)) {
+      condition = sql`${condition} AND ${tickets.userId} = ${user.sub}`;
+    }
+    
+    const [ticket] = await db.select().from(tickets).where(condition);
+    
     if (!ticket) {
+      console.log(`❌ Ticket ${ticketId} not found or access denied`);
       return res.status(404).json({ error: 'Ticket not found or access denied' });
     }
-
-    let messagesQuery = db.select().from(ticketMessages)
-      .where(eq(ticketMessages.ticketId, ticket.id))
-      .orderBy(ticketMessages.createdAt);
     
+    console.log(`✅ Found ticket ${ticket.id} (${ticket.ticketId})`);
+    
+    // Build messages condition
+    let msgCondition = sql`${ticketMessages.ticketId} = ${ticket.id}`;
     if (!isSupportOrAdmin(user)) {
-      messagesQuery = messagesQuery.where(eq(ticketMessages.isInternal, false));
+      msgCondition = sql`${msgCondition} AND ${ticketMessages.isInternal} = false`;
     }
     
-    const messages = await messagesQuery;
-
+    const messages = await db.select()
+      .from(ticketMessages)
+      .where(msgCondition)
+      .orderBy(ticketMessages.createdAt);
+    
     res.json({ ...ticket, messages });
   } catch (err) {
     console.error('Get ticket error:', err);
     res.status(500).json({ error: 'Failed to fetch ticket' });
   }
 };
+
 
 // =============================================
 // 4. ADD REPLY TO TICKET
@@ -195,11 +209,18 @@ export const addReply = async (req, res) => {
       return res.status(400).json({ error: 'Message body cannot be empty' });
     }
 
-    let ticketQuery = db.select().from(tickets).where(eq(tickets.id, parseInt(id)));
-    if (!isSupportOrAdmin(user)) {
-      ticketQuery = ticketQuery.where(eq(tickets.userId, user.sub));
+    const ticketId = parseInt(id, 10);
+    if (isNaN(ticketId)) {
+      return res.status(400).json({ error: 'Invalid ticket ID' });
     }
-    const [ticket] = await ticketQuery;
+
+    // 🔥 FIX: use snake_case column name "user_id"
+    let ticketSql = sql`SELECT * FROM tickets WHERE id = ${ticketId}`;
+    if (!isSupportOrAdmin(user)) {
+      ticketSql = sql`${ticketSql} AND user_id = ${user.sub}`;
+    }
+    const ticketResult = await db.execute(ticketSql);
+    const ticket = ticketResult.rows?.[0] || ticketResult[0];
 
     if (!ticket) {
       return res.status(404).json({ error: 'Ticket not found or access denied' });
